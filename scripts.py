@@ -8,38 +8,37 @@ from datacenter.models import Schoolkid, Mark, Chastisement, Lesson, \
 
 
 def fix_marks(schoolkid: str):
-    if schoolkid:
-        try:
-            child_marks = Mark.objects.get(
-                schoolkid__full_name__icontains=schoolkid)
-            child_bad_marks = child_marks.filter(points__in=[2, 3])
-            for child_bad_mark in child_bad_marks:
-                child_bad_mark.points = randint(4, 5)
-                child_bad_mark.save()
-        except ObjectDoesNotExist:
-            print('Ученика с таким именем не существует. Уточните '
-                  'правильность написания имени')
-        except MultipleObjectsReturned:
-            print('Учеников с таким именем слишком много, уточните фамилию '
-                  'ученика')
-    else:
+    if schoolkid == '':
         return 'Пустая строка не принимается, введите имя и фамилию'
+    try:
+        marks = Mark.objects.filter(schoolkid__full_name__icontains=schoolkid)
+    except ObjectDoesNotExist:
+        print('Ученика с таким именем не существует. Уточните '
+              'правильность написания имени')
+    except MultipleObjectsReturned:
+        print('Учеников с таким именем слишком много, уточните фамилию '
+              'ученика')
+    else:
+        bad_marks = marks.filter(points__in=[2, 3])
+        for mark in bad_marks:
+            mark.points = randint(4, 5)
+            mark.save()
 
 
 def remove_chastisements(schoolkid: str):
-    if schoolkid:
-        try:
-            child = Schoolkid.objects.get(full_name__icontains=schoolkid)
-            comments = Chastisement.objects.filter(schoolkid=child)
-            comments.delete()
-        except ObjectDoesNotExist:
-            print('Ученика с таким именем не существует. Уточните '
-                  'правильность написания имени')
-        except MultipleObjectsReturned:
-            print('Учеников с таким именем слишком много, уточните фамилию '
-                  'ученика')
-    else:
+    if schoolkid == '':
         return 'Пустая строка не принимается, введите имя и фамилию'
+    try:
+        child = Schoolkid.objects.get(full_name__icontains=schoolkid)
+    except ObjectDoesNotExist:
+        print('Ученика с таким именем не существует. Уточните '
+              'правильность написания имени')
+    except MultipleObjectsReturned:
+        print('Учеников с таким именем слишком много, уточните фамилию '
+              'ученика')
+    else:
+        comments = Chastisement.objects.filter(schoolkid=child)
+        comments.delete()
 
 
 praise_text = """
@@ -96,30 +95,32 @@ subjects = [
 
 
 def create_commendation(schoolkid: str, subject: str):
-    if schoolkid:
-        if subject in subjects:
-            try:
-                child = Schoolkid.objects.get(full_name__icontains=schoolkid)
-                target_lessons = Lesson.objects.filter(
-                    year_of_study=child.year_of_study,
-                    group_letter=child.group_letter,
-                    subject__title__icontains=subject)
-
-                target_lesson = choice(target_lessons)
-
-                Commendation.objects.create(text=choice(praise_phrases),
-                                            created=target_lesson.date,
-                                            schoolkid=child,
-                                            subject=target_lesson.subject,
-                                            teacher=target_lesson.teacher)
-            except ObjectDoesNotExist:
-                print('Ученика с таким именем не существует. Уточните '
-                      'правильность написания имени')
-            except MultipleObjectsReturned:
-                print('Учеников с таким именем слишком много, уточните фамилию '
-                      'ученика')
-        else:
-            return 'Такого прдемета не существует, проверьте правильность ' \
-                   'написания предмета'
-    else:
+    if schoolkid == '':
         return 'Пустая строка не принимается, введите имя и фамилию'
+
+    if subject not in subjects:
+        return 'Такого прдемета не существует, проверьте правильность ' \
+               'написания предмета'
+    try:
+        child = Schoolkid.objects.get(full_name__icontains=schoolkid)
+    except ObjectDoesNotExist:
+        print('Ученика с таким именем не существует. Уточните '
+              'правильность написания имени')
+    except MultipleObjectsReturned:
+        print('Учеников с таким именем слишком много, уточните фамилию '
+              'ученика')
+    else:
+        target_lessons = Lesson.objects.filter(
+            year_of_study=child.year_of_study,
+            group_letter=child.group_letter,
+            subject__title__icontains=subject)
+
+        target_lesson = choice(target_lessons)
+
+        Commendation.objects.create(
+            text=choice(praise_phrases),
+            created=target_lesson.date,
+            schoolkid=child,
+            subject=target_lesson.subject,
+            teacher=target_lesson.teacher,
+        )
